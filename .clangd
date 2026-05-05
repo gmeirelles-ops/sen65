@@ -1,0 +1,37 @@
+CompileFlags:
+  # Força o clangd a usar o banco de compilação gerado pelo ESP-IDF.
+  CompilationDatabase: /app/build
+
+  # Fallback: se por algum motivo o DB não for aplicado, isso evita a cascata
+  # de erros (headers do projeto + config gerada).
+  Add:
+    - -I/app/main/inc
+    - -I/app/build/config
+    # Alinha com o xtensa-esp-*-gcc (macros implícitas do alvo; o clang do clangd não as define).
+    - -D__XTENSA__
+    - -D__XTENSA_EL__
+    - -D__xtensa__
+    - -I/sdk/esp-idf/components/xtensa/include
+    - -I/sdk/esp-idf/components/xtensa/esp32s3/include
+    # newlib: <machine/endian.h> e tipos alinhados ao toolchain (mesma pasta do -print-sysroot).
+    - -isystem
+    - /sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include
+    - -isystem
+    - /sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/13.2.0/include
+    - -isystem
+    - /sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/13.2.0/include-fixed
+
+  # ESP-IDF (xtensa) passa flags que o clang (host) do clangd não entende.
+  # Não substituir -mlongcalls por -mlong-calls: o host também rejeita.
+  Remove:
+    - -mlongcalls
+    - -mdisable-hardware-atomics
+    - -mno-disable-hardware-atomics
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+    - -fno-jump-tables
+
+# Falso positivo: lwIP arch.h define ssize_t como int; o parser mistura com newlib.
+Diagnostics:
+  Suppress: [redefinition_different_typedef]
+

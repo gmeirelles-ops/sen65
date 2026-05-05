@@ -1,0 +1,29 @@
+{
+    "name": "ESP32 Firmware",
+    "image": "esp32-env:latest",
+    "remoteUser": "devuser",
+    "workspaceFolder": "/app",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "llvm-vs-code-extensions.vscode-clangd",
+                "espressif.esp-idf-extension"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "idf.espIdfPath": "/sdk/esp-idf",
+                "idf.toolsPath": "/sdk/tools",
+                "idf.customExtraPaths": "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin:/sdk/tools/tools/riscv32-esp-elf/esp-13.2.0_20240530/riscv32-esp-elf/bin:/sdk/tools/tools/esp32ulp-elf/2.38_20240113/esp32ulp-elf/bin:/sdk/tools/tools/openocd-esp32/v0.12.0-esp32-20240318/openocd-esp32/bin",
+                "idf.customExtraVars": "{\"OPENOCD_SCRIPTS\":\"/sdk/tools/tools/openocd-esp32/v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts\",\"IDF_CCACHE_ENABLE\":\"1\",\"ADF_PATH\":\"/sdk/esp-adf\"}"
+            }
+        }
+    },
+    "runArgs": [
+        "--privileged",
+        "--hostname", "esp32"
+    ],
+    "mounts": [
+        "source=/dev,target=/dev,type=bind"
+    ]
+}

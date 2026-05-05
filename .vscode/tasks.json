@@ -1,0 +1,95 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-lc",
+                ". /sdk/esp-idf/export.sh >/dev/null 2>&1 && idf.py build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Flash",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-lc",
+                "${workspaceFolder}/.scripts/idf-with-port.sh flash"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "Monitor",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-lc",
+                "${workspaceFolder}/.scripts/idf-with-port.sh monitor"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Flash & Monitor",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-lc",
+                "${workspaceFolder}/.scripts/idf-with-port.sh flash monitor"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "presentation": {
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-lc",
+                ". /sdk/esp-idf/export.sh >/dev/null 2>&1 && idf.py fullclean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
