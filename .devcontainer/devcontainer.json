@@ -1,6 +1,7 @@
 {
     "name": "ESP32 Firmware",
     "image": "esp32-env:latest",
+	"updateRemoteUserUID": false,
     "remoteUser": "devuser",
     "workspaceFolder": "/app",
     "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind",

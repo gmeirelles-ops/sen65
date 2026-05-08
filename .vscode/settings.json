@@ -1,42 +1,13 @@
 {
+    "idf.port": "/dev/ttyUSB0",
     "idf.flashType": "UART",
-    "cmake.generator": "Ninja",
-    "cmake.configureEnvironment": {
-        "IDF_PATH": "/sdk/esp-idf",
-        "CC": "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
-        "CXX": "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32-elf-g++",
-        "ASM": "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
-        "CMAKE_C_COMPILER": "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
-        "CMAKE_CXX_COMPILER": "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32-elf-g++",
-        "CMAKE_ASM_COMPILER": "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
-        "PATH": "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin:${env:PATH}"
-    },
     "C_Cpp.intelliSenseEngine": "disabled",
-    "clangd.path": "${workspaceFolder}/.scripts/clangd-wrapper.sh",
-    "clangd.useScriptAsExecutable": true,
+    "clangd.path": "clangd", 
     "clangd.arguments": [
         "--compile-commands-dir=${workspaceFolder}/build",
         "--query-driver=/sdk/tools/**/bin/*-gcc",
         "--header-insertion=never",
-        "--background-index"
-    ],
-    "clangd.fallbackFlags": [
-        "-D__XTENSA__",
-        "-D__XTENSA_EL__",
-        "-D__xtensa__",
-        "-I/sdk/esp-idf/components/xtensa/include",
-        "-I/sdk/esp-idf/components/xtensa/esp32s3/include",
-        "-isystem",
-        "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include",
-        "-isystem",
-        "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/13.2.0/include",
-        "-isystem",
-        "/sdk/tools/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/13.2.0/include-fixed",
-        "-I${workspaceFolder}/build/config",
-        "-I${workspaceFolder}/main/inc"
-    ],
-    "idf.openOcdConfigs": [
-        "interface/ftdi/esp_ftdi.cfg",
-        "target/esp32.cfg"
+        "--background-index",
+        "--log=verbose"
     ]
 }
