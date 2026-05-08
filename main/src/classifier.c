@@ -1,5 +1,4 @@
 #include "classifier.h"
-
 #include "app_config.h"
 
 //====================================================
@@ -7,11 +6,8 @@
 //====================================================
 
 void classifier_process(
-
     const air_processed_data_t *data,
-
     const air_event_t *event,
-
     air_classification_t *result)
 {
     //------------------------------------------------
@@ -23,125 +19,96 @@ void classifier_process(
     result->perfume_score = 0;
     result->dust_score    = 0;
 
+    // Usamos variáveis temporárias com sinal para permitir cálculos negativos
+    int16_t temp_vape_score = 0;
+    int16_t temp_cig_score  = 0;
+
     //------------------------------------------------
     // RATIO
     //------------------------------------------------
 
     float pm_voc_ratio = 0.0f;
 
-    if (data->voc_spike > 0.1f)
-    {
-        pm_voc_ratio =
-            data->pm25_spike /
-            data->voc_spike;
+    if (data->voc_spike > 0.1f) {
+        pm_voc_ratio = (float)data->pm25_spike / (float)data->voc_spike;
     }
 
-   //------------------------------------------------
-// VAPE
-//------------------------------------------------
-
-result->vape_score = 0;
-
-// VOC alto
-if (data->voc_spike > VAPE_VOC_THRESHOLD)
-    result->vape_score += 20;
-
-// NOX baixo
-if (data->nox < VAPE_NOX_MAX)
-    result->vape_score += 10;
-
-// PM realmente relevante
-if (data->pm25_spike > 8)
-    result->vape_score += 25;
-
-if (data->pm25_spike > 15)
-    result->vape_score += 15;
-
-// Relação PM/VOC típica de aerosol
-if (pm_voc_ratio > 1)
-    result->vape_score += 20;
-
-if (pm_voc_ratio > 2)
-    result->vape_score += 10;
-
-// Evento sustentado
-if (event->duration > 10)
-    result->vape_score += 10;
-
-// Penalização forte para gás/isqueiro
-if (data->voc_spike > 100 &&
-    data->pm25_spike < 6)
-{
-    result->vape_score -= 50;
-}
-
-// Penalização para VOC absurdo com PM baixo
-if (data->voc_spike > 150 &&
-    data->pm25_spike < 10)
-{
-    result->vape_score -= 30;
-}
-
-if (result->vape_score < 0)
-    result->vape_score = 0;
     //------------------------------------------------
-    // CIGARRO
+    // VAPE LOGIC - REVISADA
     //------------------------------------------------
 
-    if (data->pm25_spike >
-        CIG_PM_THRESHOLD)
-    {
-        result->cig_score += 20;
+    temp_vape_score = 0;
+
+    // Se o PM for muito baixo, ignoramos quase tudo.
+    // Vape sem particulado não existe.
+    if (data->pm25_spike < 10) {
+        temp_vape_score -= 40; 
     }
 
-    if (data->voc_spike >
-        CIG_VOC_THRESHOLD)
-    {
-        result->cig_score += 25;
+    // VOC alto ganha pontos, mas só se tiver PM acompanhando
+    if (data->voc_spike > VAPE_VOC_THRESHOLD) {
+        temp_vape_score += 15;
     }
 
-    // cigarro tende a NOX maior
-    if (data->nox >
-        CIG_NOX_THRESHOLD)
-    {
-        result->cig_score += 35;
+    // NOx baixo é típico (vape não queima nada)
+    if (data->nox < VAPE_NOX_MAX) {
+        temp_vape_score += 5;
     }
 
-    // fumaça mais persistente
-    if (event->duration > 10)
-    {
-        result->cig_score += 20;
+    // Pontuação baseada em Particulados (Aumentamos o rigor aqui)
+    if (data->pm25_spike > 15) {
+        temp_vape_score += 30;
+    }
+    if (data->pm25_spike > 30) {
+        temp_vape_score += 20;
+    }
+
+    // Relação PM/VOC (Vape real tem MUITO PM para o tanto de VOC)
+    // Se o ratio for < 0.5 (como no seu log 2.8 / 128 = 0.02), penaliza pesado.
+    if (pm_voc_ratio < 0.2f) {
+        temp_vape_score -= 60; // Penalização monstro
+    } else if (pm_voc_ratio > 1.0f) {
+        temp_vape_score += 20;
+    }
+
+    // Evento sustentado
+    if (event->duration > 10) {
+        temp_vape_score += 10;
+    }
+
+    //------------------------------------------------
+    // CIGARRO LOGIC
+    //------------------------------------------------
+
+    if (data->pm25_spike > CIG_PM_THRESHOLD) {
+        temp_cig_score += 20;
+    }
+
+    if (data->voc_spike > CIG_VOC_THRESHOLD) {
+        temp_cig_score += 25;
+    }
+
+    // Cigarro tende a gerar NOX por causa da combustão
+    if (data->nox > CIG_NOX_THRESHOLD) {
+        temp_cig_score += 35;
+    }
+
+    // Fumaça de cigarro é persistente
+    if (event->duration > 10) {
+        temp_cig_score += 20;
     }
 
     //------------------------------------------------
     // PERFUME
     //------------------------------------------------
 
-    if (
-
-        data->voc_spike >
-        PERFUME_VOC_THRESHOLD
-
-        &&
-
-        data->pm25_spike <
-        PERFUME_PM_MAX
-
-        &&
-
-        data->nox_spike <
-        10
-
-        &&
-
-        event->duration <
-        15
-    )
+    if (data->voc_spike > PERFUME_VOC_THRESHOLD &&
+        data->pm25_spike < PERFUME_PM_MAX &&
+        data->nox_spike < 10 &&
+        event->duration < 15) 
     {
         result->perfume_score = 80;
-    }
-    else
-    {
+    } else {
         result->perfume_score = 0;
     }
 
@@ -149,34 +116,32 @@ if (result->vape_score < 0)
     // POEIRA
     //------------------------------------------------
 
-    // Poeira:
-    // PM alto + VOC baixo
-
-    if (data->pm25_spike >
-        DUST_PM_THRESHOLD
-
-        &&
-
-        data->voc_spike <
-        DUST_VOC_MAX)
+    if (data->pm25_spike > DUST_PM_THRESHOLD &&
+        data->voc_spike < DUST_VOC_MAX) 
     {
         result->dust_score = 80;
-    }
-    else
-    {
+    } else {
         result->dust_score = 0;
     }
 
     //------------------------------------------------
-    // CLAMP
+    // FINAL CLAMP & ASSIGNMENT
     //------------------------------------------------
 
-    if (result->vape_score < 0)
-        result->vape_score = 0;
+    // Proteção contra valores negativos antes de converter para uint8_t
+    if (temp_vape_score < 0) {
+        temp_vape_score = 0;
+    }
+    if (temp_vape_score > 100) {
+        temp_vape_score = 100;
+    }
+    result->vape_score = (uint8_t)temp_vape_score;
 
-    if (result->vape_score > 100)
-        result->vape_score = 100;
-
-    if (result->cig_score > 100)
-        result->cig_score = 100;
+    if (temp_cig_score < 0) {
+        temp_cig_score = 0;
+    }
+    if (temp_cig_score > 100) {
+        temp_cig_score = 100;
+    }
+    result->cig_score = (uint8_t)temp_cig_score;
 }
