@@ -1,0 +1,84 @@
+#ifndef APP_CONFIG_H
+#define APP_CONFIG_H
+
+/*
+ * SEN65 — Read Measured Values, Command 0x0446 (RX 24 bytes com CRC / 2 bytes):
+ * - PM1/2.5/4/10 (uint16): ug/m3 = valor / 10. Desconhecido: 0xFFFF.
+ * - Ambient Humidity (int16): %RH = valor / 100. Desconhecido: 0x7FFF.
+ * - Ambient Temperature (int16): Celsius = valor / 200. Desconhecido: 0x7FFF.
+ * - VOC Index (int16): indice = valor / 10. Desconhecido: 0x7FFF.
+ * - NOx Index (int16): indice = valor / 10. Desconhecido: 0x7FFF.
+ *
+ * O driver guarda em sen65_data_t: PM em bruto (0,1 ug/m3); RH/T em ticks I2C;
+ * VOC/NOx ja como indice (valor I2C / 10), exceto 0x7FFF mantido como invalido.
+ */
+
+#define SENSOR_QUEUE_SIZE 10
+#define SENSOR_READ_INTERVAL_MS 1000
+#define SENSOR_WARMUP_TIME_MS 5000
+#define SENSOR_TASK_STACK 4096
+#define SENSOR_TASK_PRIORITY 5
+#define PROCESS_TASK_STACK 4096
+#define PROCESS_TASK_PRIORITY 4
+
+#define EMA_FAST_ALPHA 20
+#define EMA_FAST_DIV 100
+
+#define BASELINE_ALPHA 5
+#define BASELINE_DIV 100
+#define PM_NOISE_FLOOR 2
+#define VOC_NOISE_FLOOR 1
+#define NOX_NOISE_FLOOR 1
+
+#define EVENT_PM_START_THRESHOLD 40
+#define EVENT_VOC_START_THRESHOLD 10
+#define EVENT_PM_ACTIVE_THRESHOLD 80
+#define EVENT_VOC_ACTIVE_THRESHOLD 8
+#define EVENT_PM_END_THRESHOLD 15
+#define EVENT_VOC_END_THRESHOLD 2
+#define EVENT_PM_IDLE_THRESHOLD 5
+#define EVENT_VOC_IDLE_THRESHOLD 1
+
+#define DETECTION_SCORE_THRESHOLD 68
+
+#define VAPE_VOC_SPIKE_SOFT 40
+#define VAPE_VOC_SPIKE_MED 80
+#define VAPE_VOC_SPIKE_HIGH 150
+#define VAPE_NOX_SPIKE_MAX 1
+#define VAPE_PM_SPIKE_SOFT_CAP 220
+#define VAPE_PM_VOC_RATIO_LOW 0.65f
+#define VAPE_PM_VOC_RATIO_HIGH 1.80f
+
+#define CIG_PM_SPIKE_SOFT 95
+#define CIG_PM_SPIKE_MED 140
+#define CIG_VOC_SPIKE_SOFT 7
+#define CIG_NOX_SPIKE_SOFT 1
+#define CIG_NOX_SPIKE_STRONG 2
+#define CIG_PM_VOC_RATIO_MIN 0.22f
+
+#define PERFUME_VOC_THRESHOLD 12
+#define PERFUME_PM_MAX 20
+#define DUST_PM_THRESHOLD 150
+#define DUST_VOC_MAX 2
+
+#define FIRE_SCORE_THRESHOLD 72
+#define FIRE_PM_SPIKE_HIGH 380
+#define FIRE_PM_SPIKE_MED 240
+#define FIRE_PM_SPIKE_DUST_VOC_MAX 4
+#define FIRE_VOC_SPIKE_HIGH 18
+#define FIRE_VOC_SPIKE_MED 11
+#define FIRE_PM_VOC_COMBO_PM 190
+#define FIRE_PM_VOC_COMBO_VOC 10
+#define FIRE_SUSTAIN_DURATION 10
+#define FIRE_SUSTAIN_PM_SPIKE 165
+#define FIRE_SUSTAIN_VOC_SPIKE 8
+#define FIRE_PEAK_PM25_MIN 280
+#define FIRE_TEMP_DELTA_TICKS 90
+
+#define SERIES_RECORD_ENABLE 1
+#define SERIES_RECORD_RING_CAPACITY 240
+#define SERIES_STREAM_CSV_LINE 1
+#define SERIES_AUTO_DUMP_INTERVAL_SAMPLES 0
+#define SERIES_AUTO_DUMP_CHUNK_LINES 24
+
+#endif
