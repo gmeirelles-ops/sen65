@@ -8,5 +8,5 @@ idf_component_register(
           "src/telemetry.c"
           "src/series_record.c"
     INCLUDE_DIRS "inc"
-    REQUIRES driver acd1200 freertos esp_timer
+    REQUIRES driver acd1200 freertos esp_timer nvs_flash
 )

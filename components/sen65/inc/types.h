@@ -44,6 +44,7 @@ typedef struct {
   uint16_t peak_pm25;
   int16_t peak_voc;
   int16_t peak_nox;
+  bool voc_led_suspect;
 } air_event_t;
 
 typedef struct {

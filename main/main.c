@@ -6,6 +6,7 @@
 #include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "nvs_flash.h"
 
 #include "app_config.h"
 #include "baseline.h"
@@ -33,6 +34,7 @@ static void process_task(void *pvParameters) {
       filter_process(&raw, &processed);
       baseline_process(&processed);
       event_process(&processed, &event);
+      baseline_pure_air_checkpoint(&processed, &event);
       classifier_process(&processed, &event, &classification);
       //series_record_sample(esp_timer_get_time(), &processed, &event,
         //                   &classification);
@@ -43,6 +45,15 @@ static void process_task(void *pvParameters) {
 
 void app_main(void) {
   ESP_LOGI(TAG, "Inicio — qualidade do ar ");
+
+  esp_err_t nvs_err = nvs_flash_init();
+  if (nvs_err == ESP_ERR_NVS_NO_FREE_PAGES ||
+      nvs_err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    nvs_err = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(nvs_err);
+  baseline_init();
 
   //series_record_init();
 

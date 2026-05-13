@@ -55,6 +55,22 @@ void classifier_process(const air_processed_data_t *data,
   // ================================================================
   int16_t fire = 0;
 
+  if (event->voc_led_suspect) {
+    if (voc >= FIRE_PYROLYSIS_VOC_MIN && pm <= FIRE_PYROLYSIS_PM_MAX) {
+      fire += FIRE_PYROLYSIS_VOC_BONUS;
+      if (nox >= FIRE_PYROLYSIS_NOX_MIN) {
+        fire += FIRE_PYROLYSIS_NOX_BONUS;
+      }
+      if (co2_spike >= FIRE_PYROLYSIS_CO2_SPIKE_MIN) {
+        fire += FIRE_PYROLYSIS_CO2_BONUS;
+      }
+    }
+    if (pm >= FIRE_PYROLYSIS_HANDOFF_PM_MIN &&
+        voc >= FIRE_PYROLYSIS_HANDOFF_VOC_MIN) {
+      fire += FIRE_PYROLYSIS_HANDOFF_BONUS;
+    }
+  }
+
   if (pm >= FIRE_PM_SPIKE_HIGH) {
     fire += 42;
   } else if (pm >= FIRE_PM_SPIKE_MED) {

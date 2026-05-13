@@ -6,6 +6,9 @@ void event_process(const air_processed_data_t *data, air_event_t *event) {
     case EVENT_IDLE:
       if (data->pm25_spike > EVENT_PM_START_THRESHOLD ||
           data->voc_spike > EVENT_VOC_START_THRESHOLD) {
+        event->voc_led_suspect =
+            (data->voc_spike > EVENT_VOC_START_THRESHOLD) &&
+            (data->pm25_spike <= EVENT_PM_START_THRESHOLD);
         event->state = EVENT_SUSPECT;
         event->duration = 0;
       }
@@ -19,6 +22,7 @@ void event_process(const air_processed_data_t *data, air_event_t *event) {
       }
       if (data->pm25_spike < EVENT_PM_END_THRESHOLD &&
           data->voc_spike < EVENT_VOC_END_THRESHOLD) {
+        event->voc_led_suspect = false;
         event->state = EVENT_IDLE;
       }
       break;
@@ -43,6 +47,7 @@ void event_process(const air_processed_data_t *data, air_event_t *event) {
     case EVENT_DECAY:
       if (data->pm25_spike < EVENT_PM_IDLE_THRESHOLD &&
           data->voc_spike < EVENT_VOC_IDLE_THRESHOLD) {
+        event->voc_led_suspect = false;
         event->state = EVENT_IDLE;
       }
       break;
