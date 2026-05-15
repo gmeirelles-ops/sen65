@@ -6,3 +6,11 @@ CONFIG_UART_ISR_IN_IRAM=y
 # Enable NAPT
 CONFIG_LWIP_IP_FORWARD=y
 CONFIG_LWIP_IPV4_NAPT=y
+
+# BLE Wi-Fi provisioning (WiFi Prov Manager) + NimBLE
+CONFIG_BT_ENABLED=y
+CONFIG_BTDM_CTRL_MODE_BLE_ONLY=y
+CONFIG_BT_NIMBLE_ENABLED=y
+
+# Mais espaço para app com BT + MQTT (idf.py fullclean após mudar)
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y

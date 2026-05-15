@@ -14,6 +14,7 @@
 #include "event.h"
 #include "filter.h"
 #include "i2c_board.h"
+#include "mqtt_air.h"
 #include "sen65_task.h"
 #include "series_record.h"
 #include "telemetry.h"
@@ -36,9 +37,10 @@ static void process_task(void *pvParameters) {
       event_process(&processed, &event);
       baseline_pure_air_checkpoint(&processed, &event);
       classifier_process(&processed, &event, &classification);
-      //series_record_sample(esp_timer_get_time(), &processed, &event,
-        //                   &classification);
+      series_record_sample(esp_timer_get_time(), &processed, &event,
+                           &classification);
       telemetry_log(&processed, &event, &classification);
+      mqtt_air_publish(&processed);
     }
   }
 }
@@ -55,12 +57,14 @@ void app_main(void) {
   ESP_ERROR_CHECK(nvs_err);
   baseline_init();
 
-  //series_record_init();
+  series_record_init();
 
   i2c_master_bus_handle_t bus = NULL;
   ESP_ERROR_CHECK(board_i2c_init(&bus));
   ESP_ERROR_CHECK(acd1200_init(bus));
   ESP_ERROR_CHECK(sen65_task_init(bus));
+
+  ESP_ERROR_CHECK(mqtt_air_init());
 
   xTaskCreate(acd1200_task, "acd1200_task", ACD1200_TASK_STACK, NULL,
               ACD1200_TASK_PRIORITY, NULL);

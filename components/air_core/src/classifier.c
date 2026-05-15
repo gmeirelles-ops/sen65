@@ -12,38 +12,53 @@ static float safe_pm_voc_ratio(int16_t pm_spike, int16_t voc_spike) {
 void classifier_process(const air_processed_data_t *data,
                         const air_event_t *event,
                         air_classification_t *result) {
-  // Inicialização de scores
   result->fire_score = 0;
   result->vape_score = 0;
   result->cig_score = 0;
   result->perfume_score = 0;
   result->dust_score = 0;
+  result->alert_flags = 0;
 
   const int16_t pm = data->pm25_spike;
   const int16_t voc = data->voc_spike;
   const int16_t nox = data->nox_spike;
   const float r = safe_pm_voc_ratio(pm, voc);
 
-  // ----------------------------------------------------------------
-  // 1. CÁLCULO DO PICO DE CO2 (ACD1200 - Validador de Bafo/Exalação)
-  // ----------------------------------------------------------------
+  const int16_t vape_soft = event->adapt_vape_voc_soft;
+  const int16_t vape_med = event->adapt_vape_voc_med;
+  const int16_t vape_high = event->adapt_vape_voc_high;
+
+  const bool cig_signature_nox =
+      (((nox >= CIG_NOX_SPIKE_STRONG) && (r >= CIG_SIGNATURE_RATIO_MIN) &&
+        (pm >= CIG_PM_SPIKE_SOFT) && (voc >= CIG_VOC_SPIKE_SOFT)) ||
+       ((nox >= CIG_NOX_SPIKE_SOFT) && (r >= CIG_PM_VOC_RATIO_MIN) &&
+        (pm >= CIG_PM_SPIKE_MED) && (voc >= 6)));
+
   int16_t co2_spike = 0;
   if (data->co2_valid && data->co2_ppm > 400) {
-    // Baseline de CO2 vem do baseline_process; se ainda < 400 ppm, usa 450 ppm típico
     uint16_t base = (data->co2_base > 400) ? data->co2_base : 450;
     if (data->co2_ppm > base) {
       co2_spike = (int16_t)(data->co2_ppm - base);
     }
   }
 
+  const bool cig_signature_noxless =
+      (nox < CIG_NOX_SPIKE_SOFT) && (pm >= CIG_NOXLESS_PM_SPIKE) &&
+      (voc >= CIG_NOXLESS_VOC_SPIKE) && (r >= CIG_NOXLESS_RATIO_MIN) &&
+      ((!data->co2_valid) || (co2_spike >= CIG_NOXLESS_CO2_SPIKE));
+
+  const bool cig_signature = cig_signature_nox || cig_signature_noxless;
+
   // ----------------------------------------------------------------
   // 2. TRAVA DE SEGURANÇA: FAXINA PESADA OU BOM AR (Lockout)
   // ----------------------------------------------------------------
   // Gás altíssimo, sem partículas sólidas e odor persistente no ar
   if (voc > 120 && pm < 20 && event->duration > 45) {
-    // Aborta detecção de fumaça para não acionar a diretoria à toa
-    result->perfume_score = 90; 
-    return; 
+    result->perfume_score = 90;
+    if (event->flash_crowding) {
+      result->alert_flags |= AIR_ALERT_FLASH_CROWDING;
+    }
+    return;
   }
 
   // Variáveis estáticas de detecção de variação térmica (Incêndio)
@@ -109,6 +124,10 @@ void classifier_process(const air_processed_data_t *data,
     fire -= 35;
   }
 
+  if (cig_signature) {
+    fire -= CIG_DISAMBIG_FIRE_SUB;
+  }
+
   if (fire < 0) fire = 0;
   if (fire > 100) fire = 100;
   result->fire_score = (uint8_t)fire;
@@ -118,11 +137,11 @@ void classifier_process(const air_processed_data_t *data,
   // ================================================================
   int16_t vape = 0;
 
-  if (voc >= VAPE_VOC_SPIKE_HIGH) {
+  if (voc >= vape_high) {
     vape += 28;
-  } else if (voc >= VAPE_VOC_SPIKE_MED) {
+  } else if (voc >= vape_med) {
     vape += 20;
-  } else if (voc >= VAPE_VOC_SPIKE_SOFT) {
+  } else if (voc >= vape_soft) {
     vape += 12;
   }
 
@@ -152,8 +171,21 @@ void classifier_process(const air_processed_data_t *data,
     vape -= 22;
   }
 
-  if ((int32_t)event->duration >= 6 && voc >= VAPE_VOC_SPIKE_MED) {
+  if ((int32_t)event->duration >= 6 && voc >= vape_med) {
     vape += 10;
+  }
+
+  if (event->state == EVENT_DECAY) {
+    if (event->decay_vape_shape >= 70) {
+      vape += (int16_t)((DECAY_VAPE_SHAPE_BONUS * (int32_t)event->decay_vape_shape) /
+                        100);
+    }
+    if (event->decay_dust_shape >= 60) {
+      vape -= 25;
+      result->dust_score = (uint8_t)((result->dust_score + 25 > 100)
+                                         ? 100
+                                         : (result->dust_score + 25));
+    }
   }
 
   // --- NOVOS FILTROS DE VAPE PARA ESCOLA ---
@@ -223,7 +255,11 @@ void classifier_process(const air_processed_data_t *data,
 
   // Validação por CO2 (Exalação) para o Cigarro
   if (co2_spike > 60) {
-    cig += 15; 
+    cig += 15;
+  }
+
+  if (cig_signature_noxless) {
+    cig += CIG_NOXLESS_SCORE_BONUS;
   }
 
   if (r < 0.14f && voc >= 5) {
@@ -235,7 +271,11 @@ void classifier_process(const air_processed_data_t *data,
   }
 
   if (pm >= FIRE_PM_SPIKE_HIGH && voc >= FIRE_VOC_SPIKE_HIGH) {
-    cig -= 25;
+    if (!cig_signature) {
+      cig -= 25;
+    } else {
+      cig -= 6;
+    }
   }
 
   // ================================================================
@@ -255,7 +295,16 @@ void classifier_process(const air_processed_data_t *data,
   // ================================================================
   if (result->fire_score >= 82) {
     int16_t cap = (int16_t)(result->fire_score - 75);
-    if (cap < 0) cap = 0;
+    if (cap < 0) {
+      cap = 0;
+    }
+    if (cig_signature) {
+      if (result->fire_score < CIG_FIRE_CAP_ONLY_ABOVE) {
+        cap = 0;
+      } else if (cap > 10) {
+        cap = 10;
+      }
+    }
     vape -= cap;
     cig -= cap;
   }
@@ -280,5 +329,9 @@ void classifier_process(const air_processed_data_t *data,
       result->fire_score < FIRE_SCORE_THRESHOLD) {
     result->vape_score =
         (uint8_t)((result->vape_score > 15) ? (result->vape_score - 12) : 0);
+  }
+
+  if (event->flash_crowding) {
+    result->alert_flags |= AIR_ALERT_FLASH_CROWDING;
   }
 }

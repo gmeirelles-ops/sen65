@@ -51,12 +51,12 @@ void sen65_task(void *pvParameters) {
   while (1) {
     esp_err_t err = sen65_read(&raw);
     if (err == ESP_OK) {
-      data.pm25 =
-          (raw.pm2_5 == 0xFFFFu) ? 0u : raw.pm2_5;
-      data.voc =
-          (raw.voc_index == (int16_t)0x7FFF) ? 0 : raw.voc_index;
-      data.nox =
-          (raw.nox_index == (int16_t)0x7FFF) ? 0 : raw.nox_index;
+      data.pm1 = (raw.pm1_0 == 0xFFFFu) ? 0u : raw.pm1_0;
+      data.pm25 = (raw.pm2_5 == 0xFFFFu) ? 0u : raw.pm2_5;
+      data.pm4 = (raw.pm4_0 == 0xFFFFu) ? 0u : raw.pm4_0;
+      data.pm10 = (raw.pm10 == 0xFFFFu) ? 0u : raw.pm10;
+      data.voc = (raw.voc_index == (int16_t)0x7FFF) ? 0 : raw.voc_index;
+      data.nox = (raw.nox_index == (int16_t)0x7FFF) ? 0 : raw.nox_index;
       data.rh_ticks = raw.rh_ticks;
       data.temp_ticks = raw.temp_ticks;
       acd1200_get_latest(&data.co2_ppm, &data.co2_valid);
