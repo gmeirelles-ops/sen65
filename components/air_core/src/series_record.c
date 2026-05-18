@@ -1,5 +1,6 @@
 #include "series_record.h"
 
+#include "air_core_lock.h"
 #include "app_config.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -261,6 +262,7 @@ void series_record_sample(int64_t time_us, const air_processed_data_t *proc,
 }
 
 void series_record_dump_ring_over_uart(void) {
+  air_core_lock();
   ESP_LOGW(TAG, "SERIES_DUMP_BEGIN,samples,%u", (unsigned)s_count);
   ESP_LOGW("SERIES_CSV",
            "HEADER:ts_us,pm1,pm25,pm4,pm10,voc,nox,rh_ticks,temp_ticks,"
@@ -285,6 +287,7 @@ void series_record_dump_ring_over_uart(void) {
 #endif
   }
   ESP_LOGW(TAG, "SERIES_DUMP_END");
+  air_core_unlock();
 }
 
 #else

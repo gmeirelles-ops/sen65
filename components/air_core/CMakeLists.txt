@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS "src/filter.c"
           "src/baseline.c"
+          "src/air_core_lock.c"
           "src/adaptive_stats.c"
           "src/air_quality_level.c"
           "src/air_aqi.c"

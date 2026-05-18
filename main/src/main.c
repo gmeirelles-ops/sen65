@@ -8,6 +8,7 @@
 #include "esp_timer.h"
 #include "nvs_flash.h"
 
+#include "air_core_lock.h"
 #include "app_config.h"
 #include "baseline.h"
 #include "classifier.h"
@@ -32,6 +33,9 @@ static void process_task(void *pvParameters) {
 
   while (1) {
     if (xQueueReceive(queue, &raw, portMAX_DELAY) == pdTRUE) {
+      /* Pipeline single-writer: apenas esta task; mutex protege series_record
+       * se dump UART/MQTT concorrer no futuro. */
+      air_core_lock();
       filter_process(&raw, &processed);
       baseline_process(&processed);
       event_process(&processed, &event);
@@ -39,6 +43,7 @@ static void process_task(void *pvParameters) {
       classifier_process(&processed, &event, &classification);
       series_record_sample(esp_timer_get_time(), &processed, &event,
                            &classification);
+      air_core_unlock(); /* após pipeline + anel de series_record */
       telemetry_log(&processed, &event, &classification);
       mqtt_air_publish(&processed);
     }
@@ -56,6 +61,7 @@ void app_main(void) {
   }
   ESP_ERROR_CHECK(nvs_err);
   baseline_init();
+  ESP_ERROR_CHECK(air_core_lock_init());
 
   series_record_init();
 

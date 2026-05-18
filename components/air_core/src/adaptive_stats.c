@@ -28,32 +28,25 @@ void adaptive_stats_idle_push(int16_t pm25_spike, int16_t voc_spike) {
   }
 }
 
-static void ring_std(const int16_t *buf, uint16_t n, float *sigma) {
+/** Desvio-padrão no anel circular sem copiar para a stack. */
+static void ring_std_inplace(const int16_t *ring, uint16_t w, uint16_t n,
+                             float *sigma) {
   if (n < ADAPTIVE_MIN_SAMPLES) {
     *sigma = 0.f;
     return;
   }
+  uint16_t start = (uint16_t)((w + RING - n) % RING);
   int64_t sum = 0;
   for (uint16_t i = 0; i < n; i++) {
-    sum += buf[i];
+    sum += ring[(uint16_t)((start + i) % RING)];
   }
   float mean = (float)sum / (float)n;
   float acc = 0.f;
   for (uint16_t i = 0; i < n; i++) {
-    float d = (float)buf[i] - mean;
+    float d = (float)ring[(uint16_t)((start + i) % RING)] - mean;
     acc += d * d;
   }
   *sigma = sqrtf(acc / (float)n);
-}
-
-static void snapshot_oldest_first(int16_t *dst_pm, int16_t *dst_voc,
-                                  uint16_t n) {
-  uint16_t start = (uint16_t)((s_w + RING - n) % RING);
-  for (uint16_t i = 0; i < n; i++) {
-    uint16_t j = (uint16_t)((start + i) % RING);
-    dst_pm[i] = s_pm[j];
-    dst_voc[i] = s_voc[j];
-  }
 }
 
 static int16_t scale_thr(int32_t num, int32_t den, int16_t base) {
@@ -75,8 +68,6 @@ void adaptive_stats_fill_event_thresholds(
     int16_t *thr_voc_active, int16_t *thr_pm_end, int16_t *thr_voc_end,
     int16_t *thr_pm_idle, int16_t *thr_voc_idle, int16_t *adapt_vape_soft,
     int16_t *adapt_vape_med, int16_t *adapt_vape_high) {
-  int16_t pm_copy[RING];
-  int16_t voc_copy[RING];
   uint16_t n = s_n;
   if (n == 0) {
     *thr_pm_start = EVENT_PM_START_THRESHOLD;
@@ -92,11 +83,11 @@ void adaptive_stats_fill_event_thresholds(
     *adapt_vape_high = VAPE_VOC_SPIKE_HIGH;
     return;
   }
-  snapshot_oldest_first(pm_copy, voc_copy, n);
+
   float sigma_pm = 0.f;
   float sigma_voc = 0.f;
-  ring_std(pm_copy, n, &sigma_pm);
-  ring_std(voc_copy, n, &sigma_voc);
+  ring_std_inplace(s_pm, s_w, n, &sigma_pm);
+  ring_std_inplace(s_voc, s_w, n, &sigma_voc);
 
   int16_t pm_s = (int16_t)(ADAPT_PM_START_FLOOR + ADAPT_K_PM * sigma_pm);
   if (pm_s < EVENT_PM_START_THRESHOLD / 2) {
@@ -122,7 +113,7 @@ void adaptive_stats_fill_event_thresholds(
     *thr_pm_active = EVENT_PM_ACTIVE_THRESHOLD / 3;
   }
   *thr_voc_active = scale_thr(ADAPT_VOC_ACTIVE_SCALE_NUM,
-                             ADAPT_VOC_ACTIVE_SCALE_DEN, voc_s);
+                              ADAPT_VOC_ACTIVE_SCALE_DEN, voc_s);
   if (*thr_voc_active < 2) {
     *thr_voc_active = 2;
   }

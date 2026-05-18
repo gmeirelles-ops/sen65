@@ -1,0 +1,20 @@
+# Copie trechos para ~/.gitconfig (Linux/WSL) ou use o script git-setup-identity.sh
+#
+#   git config --global user.name "Seu Nome"
+#   git config --global user.email "12345678+seuusuario@users.noreply.github.com"
+#
+# Ou cole no final de ~/.gitconfig:
+
+[user]
+    name = Gabriel Meirelles
+    email = gmeirelles@diponto.com
+
+[init]
+    defaultBranch = main
+
+[credential]
+    helper = cache --timeout=28800
+
+# Opcional: identidade diferente só em pastas de trabalho
+# [includeIf "gitdir:~/projetos/"]
+#     path = ~/.gitconfig-trabalho

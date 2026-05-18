@@ -166,10 +166,17 @@
 
 #define MQTT_AIR_ENABLE 1
 #define MQTT_BROKER_URI "mqtt://192.168.51.87:1883"
-#define MQTT_TOPIC_AIR "indoor/air/reading"
+#define MQTT_TOPIC_AIR "Sensor/Air/Reading"
 #define MQTT_QOS_AIR 1
 #define MQTT_RETAIN_AIR 0
 
+/** Janela de pareamento Wi-Fi via BluFi apos cada reinicio (ms). */
+#define PRJ_WIFI_PAIRING_WINDOW_MS (60 * 1000)
+
+/*
+ * BluFi (app EspBlufi): nao usa PoP. BLE_PROV_POP so se migrar para
+ * wifi_provisioning / app "ESP Provisioning" (protocomm).
+ */
 #define BLE_PROV_POP "abcd1234"
 #define BLE_PROV_CLEAR_STORED_WIFI 0
 
